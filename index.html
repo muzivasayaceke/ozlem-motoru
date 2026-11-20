@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aşk ve Özlem Motoru</title>
+<style>
+  :root {
+    --bg: #fdf7f8;
+    --card: #ffffff;
+    --ink: #2a1f24;
+    --muted: #7b6b72;
+    --line: #eadfe3;
+    --accent: #d6336c;
+    --accent-soft: #fde8ef;
+    --track: #f1e6ea;
+    --warn: #e8590c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17111a;
+      --card: #211823;
+      --ink: #f6ecf1;
+      --muted: #b09ba6;
+      --line: #35283a;
+      --accent: #ff6b9a;
+      --accent-soft: #3a1f2e;
+      --track: #2e2230;
+      --warn: #ffa94d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 18px 70px; }
+  header h1 { margin: 0 0 4px; font-size: 28px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); }
+
+  .tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 20px; background: var(--track); padding: 5px; border-radius: 14px; }
+  .tab {
+    background: transparent; color: var(--muted); border: 0; border-radius: 10px;
+    padding: 10px 6px; font: inherit; font-weight: 700; font-size: 14px; line-height: 1.25; cursor: pointer; transition: all .15s;
+  }
+  .tab[aria-selected="true"] { background: var(--card); color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  .panel[hidden] { display: none; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-top: 18px; }
+  .card h2 { margin: 0 0 12px; font-size: 16px; }
+  .intro { margin: 0 0 4px; font-size: 14px; color: var(--muted); }
+  .scale-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 12px; gap: 8px; }
+
+  .progress { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 0 10px; margin-top: 6px; }
+  .progress .meter { height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; }
+  .progress .meter i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .3s ease; }
+  .progress .txt { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+  .cat { margin: 22px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-weight: 700; }
+  .q { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; transition: border-color .2s; }
+  .q.missing { border-color: var(--warn); }
+  .q .t { font-size: 15px; margin: 0 0 10px; }
+  .q .t b { color: var(--muted); font-weight: 600; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .opts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .opts label { position: relative; cursor: pointer; }
+  .opts input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .opts span {
+    display: block; text-align: center; padding: 9px 0; border-radius: 10px;
+    border: 1px solid var(--line); font-weight: 700; font-size: 15px; color: var(--muted);
+    transition: all .15s; user-select: none;
+  }
+  .opts label:hover span { border-color: var(--accent); color: var(--ink); }
+  .opts input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .opts input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  button.main, button.ghost, button.copy {
+    font: inherit; cursor: pointer; border: 0; border-radius: 12px;
+    padding: 12px 18px; font-weight: 700; background: var(--accent); color: #fff;
+  }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btns { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .err { color: var(--warn); font-size: 14px; margin-top: 10px; min-height: 20px; }
+
+  .result { display: none; }
+  .result.show { display: block; }
+  .gauge { position: relative; width: 230px; height: 230px; margin: 4px auto 10px; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge .track { stroke: var(--track); }
+  .gauge .bar { transition: stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1), stroke .6s; }
+  .gauge .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .gauge .num { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .gauge .num small { font-size: 22px; font-weight: 700; }
+  .gauge .lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .level { text-align: center; font-size: 22px; font-weight: 700; margin: 0; }
+  .comment { text-align: center; color: var(--muted); margin: 6px 0 16px; }
+
+  .visual { position: relative; overflow: hidden; background: var(--accent-soft); border-radius: 16px; padding: 22px 14px 18px; margin: 0 0 18px; text-align: center; }
+  .scene { position: relative; z-index: 1; display: flex; justify-content: center; gap: 10px; font-size: 58px; line-height: 1.1; }
+  .scene span { display: inline-block; animation: bob 1.4s ease-in-out infinite; }
+  .scene span:nth-child(2) { animation-delay: .2s; }
+  .scene span:nth-child(3) { animation-delay: .4s; }
+  .scene span:nth-child(4) { animation-delay: .6s; }
+  @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-10px) rotate(4deg); } }
+  .joke { position: relative; z-index: 1; margin: 14px 6px 0; font-size: 16px; font-weight: 600; }
+  .hearts { position: absolute; inset: 0; pointer-events: none; }
+  .hearts i { position: absolute; bottom: -30px; font-style: normal; opacity: 0; animation: rise linear infinite; }
+  @keyframes rise { 0% { transform: translateY(0) scale(.8); opacity: 0; } 15% { opacity: .85; } 100% { transform: translateY(-260px) scale(1.2); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .scene span, .hearts i { animation: none; } .hearts { display: none; } }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+  .stat { background: var(--accent-soft); border-radius: 12px; padding: 10px 8px; text-align: center; }
+  .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--muted); }
+  .part { margin-bottom: 11px; }
+  .part .top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .part .top span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meter2 { height: 9px; border-radius: 99px; background: var(--track); overflow: hidden; }
+  .meter2 i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .7s ease; }
+  .eyebrow { text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 6px; }
+  .level.big { font-size: 26px; }
+  .traits { display: grid; gap: 10px; margin-bottom: 18px; }
+  .trait { display: flex; gap: 14px; align-items: center; background: var(--accent-soft); border-radius: 12px; padding: 10px 14px; }
+  .trait .e { font-size: 30px; }
+  .trait b { display: block; }
+  .trait span { font-size: 13px; color: var(--muted); }
+  .likes { list-style: none; padding: 0; margin: 0 0 6px; }
+  .likes li { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .likes li::before { content: '❤️ '; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Aşk ve Özlem Motoru</h1>
+    <p>Bir sekme seç ve ifadelere 1 ile 5 arasında puan ver.</p>
+  </header>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div id="panels"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= TEST TANIMLARI ================= */
+  var TESTS = [
+    {
+      id: 'ozlem',
+      tab: '💭 Özlem',
+      intro: 'Sevgilini ne kadar özlediğini ölç. İfadelere şu an hissettiğin gibi cevap ver.',
+      gaugeLabel: 'özlem oranı',
+      copyPrefix: 'Özlem oranım',
+      questions: [
+        { cat: 'Düşünceler', items: [
+          'Gün içinde sık sık sevgilimi düşünüyorum.',
+          'Birlikte yaşadığımız anları gözümde canlandırıyorum.',
+          'Güzel bir şey olduğunda ilk onunla paylaşmak istiyorum.',
+          'Rüyalarımda ya da hayallerimde sık sık o oluyor.',
+          'Onu hatırlatan bir kişi ya da şey görünce duraksıyorum.',
+          'O an ne yapıyor olabileceğini merak ediyorum.',
+          'Ona anlatmak istediğim şeyleri aklımda biriktiriyorum.'
+        ]},
+        { cat: 'Duygular', items: [
+          'Yanımda olmadığı için içimde bir boşluk hissediyorum.',
+          'Sesini duymak için can atıyorum.',
+          'Ona sarılmayı çok istiyorum.',
+          'Ona dair bir şarkı, koku ya da yer beni duygulandırıyor.',
+          'Yanında olmadığımda kendimi eksik hissediyorum.',
+          'Onu düşündüğümde gözlerim dolabiliyor.',
+          'Gülüşünü görmeyi çok özlüyorum.',
+          'Yokluğu zaman zaman içimi sıkıyor.'
+        ]},
+        { cat: 'Günlük hayat', items: [
+          'Onsuz geçen günler bana çok uzun geliyor.',
+          'Dikkatimi toplamakta zorlanıyorum.',
+          'Telefonumu sık sık ondan mesaj var mı diye kontrol ediyorum.',
+          'Eski fotoğraflarımıza ya da mesajlarımıza bakıyorum.',
+          'Onun mesajını beklerken başka işlere odaklanmakta zorlanıyorum.',
+          'Yemek yerken ya da bir şey izlerken "keşke yanımda olsaydı" diyorum.',
+          'Uyumadan önce onu daha çok düşünüyorum.',
+          'Gündelik işler bana eskisi kadar keyif vermiyor.'
+        ]},
+        { cat: 'Fiziksel yakınlık', items: [
+          'Elini tutmayı özlüyorum.',
+          'Yanında uyumayı ya da uyanmayı özlüyorum.',
+          'Kokusunu özlüyorum.',
+          'Yanında olmanın verdiği güven hissini özlüyorum.',
+          'Dokunuşuna ihtiyaç duyuyorum.',
+          'Yanında rahatça sessiz kalabildiğimiz anları özlüyorum.'
+        ]},
+        { cat: 'Ortak alışkanlıklar', items: [
+          'Birlikte yaptığımız sıradan şeyleri bile özlüyorum.',
+          'Birlikte gittiğimiz yerleri yeniden ziyaret etmek istiyorum.',
+          'Ortak espri ve şakalarımızı başka kimseyle yapamıyorum.',
+          'Birlikte yemek yapmayı ya da yemeyi özlüyorum.',
+          'Onunla yaptığımız uzun ve derin sohbetleri özlüyorum.',
+          'Birlikte izlediğimiz dizi, film ya da dinlediğimiz şarkılar bana onu hatırlatıyor.'
+        ]},
+        { cat: 'Kavuşma isteği', items: [
+          'Bir sonraki buluşmamızı sabırsızlıkla bekliyorum.',
+          'Onu görmek için plan yapıyor ya da bilet bakıyorum.',
+          'Buluşma gününe kadar günleri sayıyorum.',
+          'Onu görmek için programımdan fedakarlık etmeye hazırım.',
+          'Kavuştuğumuzda yapacaklarımızı önceden hayal ediyorum.',
+          'Hemen yanına gitmek istiyorum.'
+        ]}
+      ],
+      levels: [
+        { max: 15, name: 'Hafif sızı', text: 'Özlem var ama gündelik hayatı etkilemiyor.',
+          scene: '😌☕📖', joke: 'Özlem mi? Çayım demli, kitabım yanımda. Gayet iyiyim.', heart: '💗' },
+        { max: 35, name: 'Tatlı bir eksiklik', text: 'Arada telefona bakıp gülümsetecek kadar.',
+          scene: '🙂📱💭', joke: 'Arada telefona bakıp "Ne yapıyor acaba?" diyorum. Normal, değil mi?', heart: '💗' },
+        { max: 55, name: 'Belirgin özlem', text: 'Ortak mekanlar ve şarkılar artık dokunuyor.',
+          scene: '🥹🎵📸', joke: 'Şarkı çalıyor, galeri açık, gözler dolu. Klasik özlem manzarası.', heart: '💕' },
+        { max: 75, name: 'Yoğun özlem', text: 'Mesaj beklemek ve dalıp gitmek başlamış.',
+          scene: '😩📱👀', joke: 'Mesaj gelmedi diye telefonu 47. kez kontrol ettim. Hâlâ sessiz.', heart: '💔' },
+        { max: 90, name: 'Çok yoğun özlem', text: 'Bilet fiyatlarına bakma aşamasına gelinmiş.',
+          scene: '🤯✈️🎫', joke: 'Bilet sitesinde sepet dolu. Sadece "öde" tuşuna basmak kalmış.', heart: '❤️‍🔥' },
+        { max: 101, name: 'Acil kavuşma gerekli', text: 'Bu oran uzun süre taşınmaz, buluşma planı şart.',
+          scene: '🚨🏃💨🫂', joke: 'Valiz hazır, ayakkabılar bağlı. Kavuşma alarmı verildi!', heart: '❤️‍🔥' }
+      ]
+    },
+    {
+      id: 'ask',
+      tab: '💘 Aşk',
+      intro: 'Duygularının gücünü ölç. İfadelere içinden geldiği gibi, dürüstçe cevap ver.',
+      gaugeLabel: 'aşk oranı',
+      copyPrefix: 'Aşk oranım',
+      questions: [
+        { cat: 'Kalp ve heyecan', items: [
+          'Onu görünce ya da mesajını görünce kalbim hızlanıyor.',
+          'Onunla konuşurken midemde kelebekler uçuşuyor.',
+          'Onun yanındayken zamanın nasıl geçtiğini anlamıyorum.',
+          'Onu düşünürken kendi kendime gülümsediğim oluyor.',
+          'Onunla göz göze gelince içim titriyor.',
+          'Adını duyunca kulaklarım dikiliyor.',
+          'Ona ne yazacağımı uzun uzun düşünüp mesajı yeniden yazıyorum.',
+          'Onunla ilgili küçük ayrıntılar gün boyu aklımda kalıyor.'
+        ]},
+        { cat: 'Hayranlık', items: [
+          'Onun gülüşü günümü güzelleştiriyor.',
+          'Onun kişiliğinde çok sevdiğim yönler var.',
+          'Kusurlarını bile tatlı buluyorum.',
+          'Onunla gurur duyuyorum.',
+          'Onun fikirlerine ve düşüncelerine değer veriyorum.',
+          'Onu tanıdığım için şanslı hissediyorum.'
+        ]},
+        { cat: 'Bağlılık', items: [
+          'Onunla uzun vadeli bir ilişki hayal ediyorum.',
+          'Başka birine ilgi duymuyorum.',
+          'Onunla zor günleri de aşabileceğimize inanıyorum.',
+          'Onu kaybetme fikri beni korkutuyor.',
+          'İlişkimiz için çaba göstermeye hazırım.',
+          'Sorunları çözmek için onunla konuşmayı seçiyorum.',
+          'Aramızdaki bağın özel olduğunu düşünüyorum.'
+        ]},
+        { cat: 'Fedakarlık ve destek', items: [
+          'Onun mutluluğu benim için önemli.',
+          'Onun için zamanımdan ve rahatımdan fedakarlık edebilirim.',
+          'Üzgün olduğunda ona destek olmak için elimden geleni yaparım.',
+          'Onun başarıları beni kendi başarılarım kadar sevindiriyor.',
+          'Ona küçük sürprizler yapmayı seviyorum.',
+          'Onun sevdiği şeyleri hatırlıyorum ve buna dikkat ediyorum.',
+          'Gerektiğinde ona yardım etmek için planlarımı değiştiririm.'
+        ]},
+        { cat: 'Güven ve rahatlık', items: [
+          'Onun yanında kendim gibi davranabiliyorum.',
+          'Ona sırlarımı ve korkularımı anlatabiliyorum.',
+          'Onun yanında kendimi güvende hissediyorum.',
+          'Ona güveniyorum.',
+          'Onunla sessiz kaldığımızda bile rahat hissediyorum.',
+          'Onunla yaşlanma fikri bana huzur veriyor.'
+        ]},
+        { cat: 'Gelecek hayalleri', items: [
+          'Birlikte yapacağımız seyahatleri hayal ediyorum.',
+          'Birlikte yaşadığımız bir ev düşünüyorum.',
+          'Planlarımı yaparken onu da hesaba katıyorum.',
+          'Onu ailemle ve yakınlarımla tanıştırmak istiyorum.',
+          'Birlikte yeni şeyler denemeyi ve büyümeyi istiyorum.',
+          'Gelecekte ne yapacağımı düşünürken yanımda onu görüyorum.'
+        ]}
+      ],
+      levels: [
+        { max: 15, name: 'Sadece arkadaşlık', text: 'Kalpte henüz alarm çalmıyor.',
+          scene: '🙂🤝☕', joke: 'Güzel bir arkadaşlık bu. Kalp ritmi sakin, kelebekler uykuda.', heart: '💛' },
+        { max: 35, name: 'Hoşlanma', text: 'Bir şeyler kıpırdamaya başlamış.',
+          scene: '😊🦋💭', joke: 'Midede iki kelebek uçuşuyor. Henüz kalabalık değiller.', heart: '💗' },
+        { max: 55, name: 'Aşka yakın', text: 'Duygular belirginleşiyor.',
+          scene: '😍💌🙈', joke: 'Mesajı yazıp silme, yazıp silme aşamasındasın. Gönder tuşu seni izliyor.', heart: '💕' },
+        { max: 75, name: 'Aşıksın', text: 'Bu iş ciddi, kalp kararını vermiş.',
+          scene: '🥰💞🎶', joke: 'Her şarkı sanki sana yazılmış. Radyo seni takip ediyor.', heart: '💞' },
+        { max: 90, name: 'Çok aşıksın', text: 'Gelecek planlarında artık iki kişi var.',
+          scene: '🤩💍🌹', joke: 'Ortak ev dekorasyonu hayallerine başlamışsın bile. Perdeler bej mi krem mi?', heart: '❤️' },
+        { max: 101, name: 'Tepeden tırnağa aşıksın', text: 'Kalp tamamen onda.',
+          scene: '🫠💘🚀🦋', joke: 'Kalp atış hızı ölçülemiyor. Kelebekler artık sürü halinde.', heart: '💘' }
+      ]
+    },
+    {
+      id: 'ozellik',
+      mode: 'profile',
+      tab: '🌟 Sevdiğim özellikler',
+      intro: 'Onda en çok neleri sevdiğini keşfet. Sonuç bir sayı değil, bir profil olarak çıkacak.',
+      legend: ['1 = Beni pek etkilemiyor', '3 = Fark ediyorum', '5 = Bayılıyorum'],
+      copyPrefix: 'Onda en çok sevdiğim yön',
+      questions: [
+        { cat: 'Mizah ve neşe', emoji: '😂', title: 'Kahkaha Avcısı', scene: '😂🎭🤣', heart: '😄',
+          desc: 'Seni en çok güldüren ve ortamı hafifleten yönü çekiyor. Onunla geçen zamanın kalitesi, kahkaha sayısıyla ölçülüyor.',
+          joke: 'Onun esprisine herkesten önce gülen kişi sensin.',
+          items: [
+            'Beni güldürmeyi başarıyor.',
+            'Girdiği her ortamı neşelendiriyor.',
+            'Kendisiyle dalga geçebiliyor.',
+            'Espri anlayışımız birbirine çok uyuyor.',
+            'Kötü bir günümde bile beni gülümsetebiliyor.'
+          ] },
+        { cat: 'Şefkat ve ilgi', emoji: '🤗', title: 'Sıcak Yürek Hayranı', scene: '🤗🧸💞', heart: '🤗',
+          desc: 'Anlayışı, ilgisi ve yumuşak tavrı seni bağlıyor. Yanında duygularının görüldüğünü ve önemsendiğini hissediyorsun.',
+          joke: 'Kalorifere gerek kalmadı, onun ilgisi yetiyor.',
+          items: [
+            'Beni dinlerken gerçekten dinliyor.',
+            'Duygularımı anlıyor.',
+            'Küçük ihtiyaçlarımı fark ediyor.',
+            'Sıcak ve yumuşak bir tavrı var.',
+            'Üzgün olduğumda yanımda olduğunu hissettiriyor.'
+          ] },
+        { cat: 'Zeka ve merak', emoji: '🧠', title: 'Zihin Hayranı', scene: '🧠💡📚', heart: '💡',
+          desc: 'Sohbetinin derinliği ve merakı seni etkiliyor. Onunla konuşmak saatleri kısaltıyor.',
+          joke: 'Gece yarısı "bir şey soracağım" diye mesaj atabilirsin, o da bir saat anlatır.',
+          items: [
+            'Sohbetleri derin ve ilgi çekici.',
+            'Yeni şeyler öğrenmeye meraklı.',
+            'Fikirleri beni düşündürüyor.',
+            'Olaylara zeki bir açıdan bakıyor.',
+            'Soru sormayı ve araştırmayı seviyor.'
+          ] },
+        { cat: 'Dürüstlük ve güven', emoji: '🔒', title: 'Güven Limanı Sahibi', scene: '🔒🤝🏡', heart: '🔒',
+          desc: 'Dürüstlüğü ve tutarlılığı sana en çok değer veren şey. Onun yanında zeminin sağlam olduğunu biliyorsun.',
+          joke: 'Sırların onun yanında kasada bile değil, çok daha güvende.',
+          items: [
+            'Sözünün arkasında duruyor.',
+            'Bana karşı dürüst.',
+            'Güvenilir biri olduğunu hissediyorum.',
+            'Zor konularda bile açık konuşabiliyor.',
+            'Tutarlı davranıyor.'
+          ] },
+        { cat: 'Enerji ve macera', emoji: '🚀', title: 'Macera Ortağı', scene: '🚀🌍🎒', heart: '🚀',
+          desc: 'Enerjisi ve cesareti seni heyecanlandırıyor. Onunla sıradan bir gün bile hikayeye dönüşüyor.',
+          joke: 'Plan yok, harita yok, ama eğlence garanti.',
+          items: [
+            'Yeni yerler ve deneyimler denemeyi seviyor.',
+            'Heyecanı ve enerjisi bulaşıcı.',
+            'Plansız anları eğlenceli hale getiriyor.',
+            'Gerektiğinde cesur davranabiliyor.',
+            'Hayata hevesle bakıyor.'
+          ] },
+        { cat: 'Sakinlik ve huzur', emoji: '🌿', title: 'Huzur Bulucu', scene: '🌿🧘🌙', heart: '🌿',
+          desc: 'Sakinliği ve sabrı seni dinlendiriyor. Onun yanında dünya biraz yavaşlıyor.',
+          joke: 'Yanında telefon bildirimleri bile sessize alınmış gibi.',
+          items: [
+            'Yanında kendimi dinlenmiş hissediyorum.',
+            'Zor anlarda sakin kalabiliyor.',
+            'Gereksiz tartışma çıkarmıyor.',
+            'Sabırlı biri.',
+            'Varlığı bana huzur veriyor.'
+          ] },
+        { cat: 'Tarz ve çekicilik', emoji: '✨', title: 'Estetik Hayranı', scene: '✨😎💫', heart: '✨',
+          desc: 'Duruşu, tarzı ve çekiciliği seni etkiliyor. Bir bakışı ya da gülüşü gününü bir anda değiştirebiliyor.',
+          joke: 'Bazen sadece bakıp "ya bu kadar da olmaz" diyorsun.',
+          items: [
+            'Dış görünüşünü çekici buluyorum.',
+            'Giyim tarzını ve duruşunu seviyorum.',
+            'Bakışı ve gülüşü beni etkiliyor.',
+            'Sesi ya da kokusu beni etkiliyor.',
+            'Kendine özgü bir tarzı var.'
+          ] },
+        { cat: 'Azim ve hırs', emoji: '💪', title: 'Azim Hayranı', scene: '💪🎯🏆', heart: '💪',
+          desc: 'Hırsı, sorumluluğu ve çalışkanlığı seni etkiliyor. Hayallerine sahip çıkan biri olması seni gururlandırıyor.',
+          joke: 'Onun hedef listesi senin ilham panon.',
+          items: [
+            'Hedefleri için çalışıyor.',
+            'Kolay vazgeçmiyor.',
+            'Sorumluluk sahibi biri.',
+            'İşine ve hayallerine değer veriyor.',
+            'Kendini geliştirmeye çalışıyor.'
+          ] }
+      ],
+      balanced: { title: 'Bütün Paket Hayranı', scene: '🥰🎁✨', heart: '💖',
+        desc: 'Tek bir özelliğe değil, onu bir bütün olarak seviyorsun. Hangi yönüne baksan seni etkiliyor.',
+        joke: 'Kataloğun hiçbir sayfasını atlamamışsın.' },
+      low: { title: 'Keşif Aşamasındasın', scene: '🔍🌱🙂', heart: '🌱',
+        desc: 'Özellikleri henüz belirgin şekilde öne çıkmamış. Zaman geçtikçe onda neyi sevdiğini daha net göreceksin.',
+        joke: 'Tanışma faslı sürüyor, güzel şeyler yeni başlıyor.' }
+    },
+    {
+      id: 'asko',
+      tab: '💅 Aşko Kuşko',
+      intro: 'İnternetin meşhur "aşko kuşko" tarzına ne kadar yakınsın? Tamamen eğlence amaçlı, kendine hafifçe gülerek cevapla.',
+      gaugeLabel: 'aşko kuşko oranı',
+      copyPrefix: 'Aşko kuşko oranım',
+      questions: [
+        { cat: 'Dil ve kısaltmalar', items: [
+          'Kelimelerin sonuna "o" ekleyerek kısaltırım (aşko, yeto, foti gibi).',
+          'Sevdiklerime "aşko", "canko" ya da "kanko" diye hitap ederim.',
+          'Mesajlarda "yaaaa" ya da "ayyy" gibi uzatmalar kullanırım.',
+          '"Of ya", "hadi ya", "çok tatlısın" gibi ifadeler günlük konuşmamın parçası.',
+          'Bir şeyi vurgularken "çoook güzel" gibi uzatarak söylerim.',
+          'Eksik harflerle yazmak (naber, napıyon, bişey) bana doğal geliyor.',
+          'Konuşurken sesimi ince ve tatlı yapabiliyorum.'
+        ]},
+        { cat: 'Cilve ve tatlılık', items: [
+          'Cilve yapmak benim için doğal bir şey.',
+          'Küçük şımarıklıklar yapmayı severim.',
+          'İsteklerimi tatlı bir ısrarla dile getiririm.',
+          'Kırgın olduğumda surat asmayı bilirim.',
+          'Bir şey isterken gözlerimi kırpıştırabilirim.',
+          'Hediye aldığımda minik bir çığlık atarım.',
+          '"Hadi ama lütfen" demek bende genellikle işe yarar.'
+        ]},
+        { cat: 'Sosyal medya ve görüntü', items: [
+          'Günde birkaç kez fotoğraf ya da hikaye paylaşırım.',
+          'Fotoğraf çekilirken en iyi açımı bilirim.',
+          'Bir fotoğrafı paylaşmadan önce birkaç kez denerim.',
+          'Emoji ve çıkartmaları bol bol kullanırım.',
+          'Filtre seçmeden fotoğraf paylaşmam.',
+          'Hikayeye "bu mu şu mu?" diye anket koyarım.',
+          'Kombin yapmak benim için eğlenceli.'
+        ]},
+        { cat: 'Duygu ifadesi ve dram', items: [
+          'Duygularımı abartılı sözlerle anlatabilirim ("öleceğim", "bittim").',
+          'Küçük bir şeye bile "çok üzüldüm" diyebilirim.',
+          'Heyecanlandığımda sesim yükselir.',
+          'Arkadaşımın mesajına "ayyy" ile başlayarak cevap veririm.',
+          'İlgi çekmek için küçük dramlar yaratabilirim.',
+          'Sinirlendiğimde "hı hı" ya da "peki" ile cevap veririm.',
+          'Film ya da dizide ağlamak bende çok normal.'
+        ]},
+        { cat: 'Arkadaşlık ve sohbet', items: [
+          'Kız arkadaşlarımla saatlerce telefonda konuşabilirim.',
+          'Gün sonunda arkadaşlarıma o günün tüm ayrıntılarını anlatırım.',
+          'Birine "kanka" ya da "canım" demeden konuşmak bana zor gelir.',
+          'Sesli mesajı yazıdan daha çok kullanırım.',
+          '"Dur sana bir şey anlatayım" diye başlamayı çok severim.',
+          'Gelişmeleri arkadaşlarımla paylaşmadan duramam.'
+        ]},
+        { cat: 'Hayat tarzı', items: [
+          'Kahve ve tatlı molaları günümün önemli bir parçası.',
+          'Makyaj ve bakım rutinine zaman ayırırım.',
+          'Çantamda mutlaka ruj, ayna ya da mini bir bakım ürünü bulunur.',
+          'Alışverişi bir terapi gibi görürüm.',
+          'Sevimli kupa, defter ya da telefon kılıfı gibi şeyleri severim.',
+          'Pembe ve pastel renkleri severim.'
+        ]}
+      ],
+      levels: [
+        { max: 15, name: 'Sade ve doğrudan', text: 'Aşko kuşko dünyasına oldukça uzaksın.',
+          scene: '😐📚☕', joke: 'Mesajların noktalı, cümlelerin tam. Aşko mu? Sözlükte aradım bulamadım.', heart: '📚' },
+        { max: 35, name: 'Arada bir aşko', text: 'Ara sıra ağzından kaçıyor ama hemen toparlıyorsun.',
+          scene: '🙂💬🌸', joke: 'Arada "aşko" kaçıyor, sonra "pardon" deyip toparlıyorsun.', heart: '🌸' },
+        { max: 55, name: 'Yarı aşko', text: 'Bir ayağın bu dünyada, diğeri resmi yazışmada.',
+          scene: '😊💅📱', joke: 'İş maili "Sayın yetkili" diye başlıyor, arkadaş grubu "yaaaa" diye.', heart: '💅' },
+        { max: 75, name: 'Aşko kuşko meraklısı', text: 'Bu dünyanın dilini akıcı konuşuyorsun.',
+          scene: '🥰🎀💬', joke: 'Mesajların "yaaaa" ile başlayıp üç emojiyle bitiyor.', heart: '🎀' },
+        { max: 90, name: 'Tam aşko kuşko', text: 'Üslubun ve tarzın bu dünyanın tam içinde.',
+          scene: '💅🎀🦄✨', joke: 'Sesli mesajların 3 dakika sürüyor ve hepsi "dur anlatayım" ile başlıyor.', heart: '🦄' },
+        { max: 101, name: 'Aşko kuşko kraliçesi', text: 'Bu tarzın sözlüğünü yazsan, kaynak sensin.',
+          scene: '👑💖🎀✨', joke: 'Aşko kuşko sözlüğünün yazarı sensin. Telif hakkı bile sende olabilir.', heart: '💖' }
+      ]
+    },
+    {
+      id: 'kiskanc',
+      tab: '😤 Kıskançlık',
+      intro: 'Sevgilin söz konusu olduğunda ne kadar kıskanç olduğunu ölç. Kıskançlık herkeste olabilir, dürüstçe cevapla.',
+      gaugeLabel: 'kıskançlık oranı',
+      copyPrefix: 'Kıskançlık oranım',
+      questions: [
+        { cat: 'Sosyal medya', items: [
+          'Sevgilimin fotoğraflarına gelen beğenileri ve yorumları fark ederim.',
+          'Kimleri takip ettiğine dikkat ederim.',
+          'Bir kişinin hikayelerini sürekli izlemesi beni rahatsız eder.',
+          'Beğendiği sayfalara ve hesaplara bakarım.',
+          'Başkalarının gönderilerine yaptığı yorumlar canımı sıkabilir.',
+          'Ona gelen yeni takip isteklerini merak ederim.',
+          'Profil fotoğrafını değiştirdiğinde kimin için yaptığını düşünürüm.'
+        ]},
+        { cat: 'Çevre ve arkadaşlar', items: [
+          'Karşı cinsten arkadaşlarıyla görüşmesi beni tedirgin eder.',
+          'İş ya da okuldaki arkadaşlarını tanımak isterim.',
+          'Arkadaşlarıyla yaptığı planlara beni de katmasını isterim.',
+          'Onunla fazla samimi olan birini hemen fark ederim.',
+          'Ona ilgi gösteren birini görünce içimden bir ses uyarır.',
+          'Bir ortamda benden çok başkasıyla konuşursa kırılırım.',
+          'Ortak arkadaşlarımızla ilgili haberleri ondan duymak isterim.'
+        ]},
+        { cat: 'Geçmiş ve karşılaştırma', items: [
+          'Eski sevgililerini merak ederim.',
+          'Eski sevgilisinden bahsettiğinde rahatsız olurum.',
+          'Kendimi onun eski ilişkileriyle karşılaştırırım.',
+          'Eski sevgilisinin sosyal medyasına baktığım olur.',
+          'Eski ilişkilerine dair ayrıntıları bilmek isterim.',
+          'Geçmişte kimlerle birlikte olduğunu merak ederim.'
+        ]},
+        { cat: 'Zaman ve ilgi', items: [
+          'Bana ayırdığı zamanın az olduğunu düşündüğümde huzursuz olurum.',
+          'Mesajlarıma geç cevap verdiğinde kafamda sorular oluşur.',
+          'Başkalarına benden fazla vakit ayırdığını düşündüğümde üzülürüm.',
+          'İlgisinin başka yerlere kaydığını hissetmeden duramam.',
+          'İlgisinin sadece bana yönelmesini isterim.',
+          'Planlarını bana önceden söylemesini beklerim.',
+          'Onunla geçirdiğim zamanın bana özel olmasını isterim.'
+        ]},
+        { cat: 'Duygusal tepkiler', items: [
+          'Kıskançlık hissettiğimde midem sıkışır.',
+          'Kıskançlığımı gizlemekte zorlanırım.',
+          'Kıskandığımda surat asarım ya da sessizleşirim.',
+          'Küçük bir şey bile bana kıskançlık hissettirebilir.',
+          'Kıskandığım şeyi uzun süre aklımdan çıkaramam.',
+          'Kıskançlığımın bazen gereksiz olduğunu sonradan fark ederim.'
+        ]},
+        { cat: 'Davranışlar', items: [
+          'Kıskandığımda konuyu hemen açarım.',
+          'Şüphelendiğimde ona soru sorarım.',
+          'Kimle konuştuğunu öğrenmek isterim.',
+          'Telefonuna ya da mesajlarına bakma isteği duyduğum olur.',
+          'Kıskançlığım yüzünden tartıştığımız olmuştur.',
+          'Kıskandığımda onun da beni kıskanmasını isterim.',
+          'Kıskandığım kişi hakkında bilgi toplamaya çalışırım.'
+        ]}
+      ],
+      levels: [
+        { max: 15, name: 'Sakin ve rahat', text: 'Kıskançlık sana pek uğramıyor.',
+          scene: '😌🌿🧘', joke: 'Kıskançlık mı? Yeşil rengi sadece çimenlerde seviyorum.', heart: '🌿' },
+        { max: 35, name: 'Hafif kıskanç', text: 'Arada gözün kayıyor ama çabuk toparlıyorsun.',
+          scene: '🙂👀☕', joke: 'Arada gözün kayıyor ama çayın soğumadan geçiyor.', heart: '👀' },
+        { max: 55, name: 'Orta kıskanç', text: 'Bazı şeyler seni gerçekten rahatsız ediyor.',
+          scene: '😒📱👀', joke: 'Beğeni bildirimi gelince gözün telefona kayıyor, kaş hafifçe kalkıyor.', heart: '😒' },
+        { max: 75, name: 'Belirgin kıskanç', text: 'Kıskançlık günlük hayatını etkilemeye başlamış.',
+          scene: '😤💚👀', joke: 'Hikayeyi kimin izlediğini görünce bakışların lazere dönüşüyor.', heart: '💚' },
+        { max: 90, name: 'Çok kıskanç', text: 'Kıskançlık hayatında büyük yer kaplıyor.',
+          scene: '😠🔥🔎', joke: 'Fotoğrafına gelen her yorum için kişisel bir inceleme komisyonu kurdun.', heart: '🔥' },
+        { max: 101, name: 'Kıskançlık şampiyonu', text: 'Biraz nefes almak hem sana hem ilişkine iyi gelir.',
+          scene: '🏆😤💚🔥', joke: 'Madalyayı aldın ama kimseye gösterme, sevgilin kıskanır.', heart: '🏆' }
+      ]
+    },
+    {
+      id: 'sevmedigim',
+      mode: 'profile',
+      tab: '🙅 Sevmediğim özellikler',
+      intro: 'Onda seni en çok zorlayan yönleri keşfet. Sonuç bir sayı değil, bir profil olarak çıkacak. Her ilişkide küçük pürüzler olur, o yüzden dürüstçe ama hafif bir gülümsemeyle cevapla.',
+      legend: ['1 = Beni rahatsız etmiyor', '3 = Fark ediyorum', '5 = Beni çok zorluyor'],
+      copyPrefix: 'Onda en çok zorlandığım yön',
+      labels: {
+        eyebrow: 'Onda seni en çok zorlayan yön',
+        topTitle: 'Seni zorlayan yönler',
+        likesTitle: 'Özellikle rahatsız olduklarım',
+        strength: ['Pek rahatsız etmiyor', 'Fark ediyorsun', 'Biraz zorluyor', 'Epey zorluyor', 'Çok zorluyor'],
+        noTop: 'Seni belirgin şekilde zorlayan bir yön çıkmadı.',
+        lowNote: 'Seni en az rahatsız eden yön: {x}. Bu konuda oldukça rahatsın.'
+      },
+      questions: [
+        { cat: 'Sinirlilik ve öfke', emoji: '😠', title: 'Huzur Bekçisi', scene: '😠💢📢', heart: '💢',
+          desc: 'Sinirli çıkışlar ve yükselen ses seni en çok zorlayan şey. Sakin bir ortam senin için vazgeçilmez.',
+          joke: 'Ses yükselince senin huzur alarmın çalıyor.',
+          items: [
+            'Küçük şeylere hemen sinirleniyor.',
+            'Sesini yükselttiği anlar oluyor.',
+            'Tartışırken tatlı dilden uzaklaşıyor.',
+            'Öfkesini kontrol etmekte zorlanıyor.',
+            'Sinirliyken kırıcı sözler söyleyebiliyor.'
+          ] },
+        { cat: 'İlgisizlik ve soğukluk', emoji: '🧊', title: 'Sıcaklık Arayan', scene: '🧊🥶📵', heart: '🧊',
+          desc: 'İlgisizlik ve mesafeli tavır seni en çok yoran şey. Sıcak ve ilgili bir bağ senin için çok önemli.',
+          joke: 'Kışı hava durumundan öğrenmek istiyorsun, ondan değil.',
+          items: [
+            'Mesajlarıma geç ve kısa cevap veriyor.',
+            'Duygularını göstermekte zorlanıyor.',
+            'Beni dinlerken telefona bakıyor.',
+            'Önemli günleri unutuyor.',
+            'Bazen soğuk ve mesafeli davranıyor.'
+          ] },
+        { cat: 'Yalan ve tutarsızlık', emoji: '🤥', title: 'Dürüstlük Bekçisi', scene: '🤥🔍🧐', heart: '🔍',
+          desc: 'Yalan ve tutarsızlık seni en çok rahatsız ediyor. Senin için güven temel şart.',
+          joke: 'Küçük bir yalan duyunca kulağında alarm çalıyor.',
+          items: [
+            'Küçük konularda bile doğruyu söylemeyebiliyor.',
+            'Verdiği sözleri tutmuyor.',
+            'Söylediği ile yaptığı birbirini tutmuyor.',
+            'Bir şey saklıyormuş gibi davranıyor.',
+            'Hatasını kabul etmekte zorlanıyor.'
+          ] },
+        { cat: 'Kıskançlık ve kontrol', emoji: '👀', title: 'Özgürlük Savunucusu', scene: '👀🔒📱', heart: '👀',
+          desc: 'Aşırı kıskançlık ve kontrol seni en çok zorlayan şey. Nefes alabileceğin bir alana ihtiyaç duyuyorsun.',
+          joke: 'Özgürlük senin için telefonun şifresinden değerli.',
+          items: [
+            'Beni sık sık sorguluyor.',
+            'Kiminle konuştuğumu kontrol etmek istiyor.',
+            'Küçük şeyler yüzünden kıskanıyor.',
+            'Kararlarıma karışıyor.',
+            'Telefonuma ya da mesajlarıma bakmak istiyor.'
+          ] },
+        { cat: 'Düzensizlik ve sorumsuzluk', emoji: '🌀', title: 'Düzen Hayranı', scene: '🌀📅⏰', heart: '⏰',
+          desc: 'Plansızlık ve sorumsuzluk seni yoruyor. Düzenli ve güvenilir biriyle daha rahat ediyorsun.',
+          joke: 'Senin takvimin renk kodlu, onun planı "bakarız".',
+          items: [
+            'Randevulara geç kalıyor.',
+            'Sorumluluklarını erteliyor.',
+            'Eşyalarını dağınık bırakıyor.',
+            'Plan yapmakta zorlanıyor.',
+            'Para ve zaman konusunda düzensiz.'
+          ] },
+        { cat: 'Bencillik ve inatçılık', emoji: '🙄', title: 'Denge Arayan', scene: '🙄🤷🗣', heart: '🙄',
+          desc: 'Ben merkezli tavır ve inatçılık seni en çok zorlayan şey. Eşit ve karşılıklı bir ilişki istiyorsun.',
+          joke: 'Terazi dengede olsun, tek istediğin bu.',
+          items: [
+            'Her zaman dediğinin olmasını istiyor.',
+            'Fikrimi sormadan karar veriyor.',
+            'Özür dilemekte zorlanıyor.',
+            'Benim ihtiyaçlarımı ikinci plana atıyor.',
+            'Haklı çıkmak için ısrar ediyor.'
+          ] },
+        { cat: 'Alışkanlıklar ve ayrıntılar', emoji: '😬', title: 'Detay Gözlemcisi', scene: '😬🧦🍽', heart: '😬',
+          desc: 'Günlük alışkanlıklar ve küçük ayrıntılar seni rahatsız ediyor. Küçük şeyler senin için büyük fark yaratıyor.',
+          joke: 'Çorabı yere bırakmak senin için kişisel bir meydan okuma.',
+          items: [
+            'Bazı alışkanlıkları beni rahatsız ediyor.',
+            'Yeme içme tarzı gözüme batıyor.',
+            'Telefona fazla gömülüyor.',
+            'Kişisel bakımına yeterince dikkat etmiyor.',
+            'Konuşma ya da gülme tarzı bazen sinirimi bozuyor.'
+          ] },
+        { cat: 'Sıkıcılık ve değişime kapalılık', emoji: '🥱', title: 'Heyecan Arayan', scene: '🥱💤🔁', heart: '🥱',
+          desc: 'Monotonluk ve değişime kapalılık seni sıkıyor. Yeni şeyler denemek ve hareketli olmak istiyorsun.',
+          joke: '"Rutin" kelimesini duyunca gözlerin kendiliğinden kapanıyor.',
+          items: [
+            'Yeni şeyler denemeye isteksiz.',
+            'Hep aynı planları yapıyor.',
+            'Sohbetlerimiz bazen sıkıcı olabiliyor.',
+            'Değişime kapalı davranabiliyor.',
+            'Hayata fazla temkinli bakıyor.'
+          ] }
+      ],
+      balanced: { title: 'Her Detaya Duyarlı', scene: '😬📝🔍', heart: '📝',
+        desc: 'Tek bir yön değil, birçok konuda hassassın. Beklentilerini açıkça konuşmak bu noktada çok iyi gelebilir.',
+        joke: 'Pürüz listesi uzun ama ilişkinin kendisi hâlâ listenin dışında.' },
+      low: { title: 'Hoşgörü Ustası', scene: '😇🌈🍀', heart: '🍀',
+        desc: 'Onda seni belirgin şekilde rahatsız eden bir yön yok. Anlayışlı ve hoşgörülü bakıyorsun.',
+        joke: 'Sabır taşın çatlamamış, hatta cilalanmış.' }
+    },
+    {
+      id: 'uzak',
+      tab: '🌍 Uzak mesafe',
+      intro: 'Uzak mesafe ilişkiye ne kadar uygun olduğunu ölç. Sonuç bir fikir verir, kesin bir hüküm değildir. Şu anki tutumuna göre cevapla.',
+      gaugeLabel: 'uygunluk oranı',
+      copyPrefix: 'Uzak mesafe uygunluk oranım',
+      questions: [
+        { cat: 'İletişim', items: [
+          'Düzenli konuşmak için günlük programımda yer açabilirim.',
+          'Yazışmak kadar sesli ve görüntülü görüşmeyi de severim.',
+          'Gün içinde cevap gelmese de kafamda büyütmeden bekleyebilirim.',
+          'Duygularımı yazarak ya da konuşarak açıkça anlatabilirim.',
+          'Zaman farkı olsa bile ortak saatler bulmaya çalışırım.',
+          'Konuşacak şey bittiğinde sessizlik anlarını rahat geçirebilirim.',
+          'Kırgınlığı ertelemeden, mesafeye rağmen konuşarak çözmeyi seçerim.'
+        ]},
+        { cat: 'Güven', items: [
+          'Sevgilime güvenebileceğimi hissediyorum.',
+          'Sosyal çevresini göremesem de endişelenmem.',
+          'Bana söylediklerine inanırım.',
+          'Güvensizlik anlarında bunu dürüstçe paylaşabilirim.',
+          'Ona sürekli hesap sormak istemem.',
+          'Aramızdaki güvenin mesafeden etkilenmeyeceğine inanıyorum.',
+          'Benden uzakta özgürce vakit geçirmesine saygı duyarım.'
+        ]},
+        { cat: 'Bağımsızlık', items: [
+          'Tek başıma vakit geçirmekten keyif alıyorum.',
+          'Kendi hobilerim ve ilgi alanlarım var.',
+          'Sosyal çevremle aktif bir hayatım var.',
+          'O yanımda olmadığında da kendi hayatımı sürdürebilirim.',
+          'Yalnızlık hissettiğimde kendimi oyalayacak yollarım var.',
+          'Duygusal olarak sadece ona bağımlı değilim.'
+        ]},
+        { cat: 'Sabır ve özlemle başa çıkma', items: [
+          'Birbirimizi göremeden günler geçse de sabredebilirim.',
+          'Özlediğimde bunu sağlıklı yollarla yönetebilirim.',
+          'Buluşma tarihini beklerken heyecanı yaşayabilirim.',
+          'Dokunuşsuz bir ilişkinin zorluğunu kabul edebiliyorum.',
+          'Özel günleri yan yana geçirememeyi tolere edebilirim.',
+          'Zor bir günümde yanımda olamamasına anlayışla yaklaşabilirim.',
+          'Bekleyişin kendi içinde bir değeri olduğunu düşünüyorum.'
+        ]},
+        { cat: 'Planlama ve çaba', items: [
+          'Buluşmalar için önceden plan yapmayı severim.',
+          'Yol masrafları ve bilet için bütçe ayırabilirim.',
+          'Takvimimi buluşmalara göre ayarlayabilirim.',
+          'Görüşme günlerini ve saatlerini düzenli takip ederim.',
+          'Yolculuk yorgunluğunu göze alabilirim.',
+          'Sürpriz ziyaret ya da hediye planlamayı severim.',
+          'Yaşam planlarımı ortak buluşma zamanlarına uydurabilirim.'
+        ]},
+        { cat: 'Gelecek ve ortak hedef', items: [
+          'Mesafenin ne kadar süreceği konusunda ortak bir fikrimiz var.',
+          'Aynı şehirde buluşma planımızı konuştuk.',
+          'İlişkimizin geleceği konusunda aynı şeyleri istiyoruz.',
+          'Mesafeyi geçici bir dönem olarak görüyorum.',
+          'Ortak hedeflerimizi düzenli olarak konuşuyoruz.',
+          'İkimiz de ilişkiye emek vermeye hazırız.'
+        ]}
+      ],
+      levels: [
+        { max: 15, name: 'Yan yana olmak şart', text: 'Şu an için yakın mesafe sana daha uygun görünüyor.',
+          scene: '🏠🤗🛋', joke: 'Görüntülü görüşme sana yetmiyor, evin bir odası kadar yakın olmalı.', heart: '🏠' },
+        { max: 35, name: 'Zorlanırsın', text: 'Birkaç alanda hazırlık gerekiyor.',
+          scene: '😅📱🧳', joke: 'Zorlu bir yol ama bilet fiyatlarını takip ederek hazırlanılabilir.', heart: '🧳' },
+        { max: 55, name: 'Denenebilir', text: 'Bazı yönlerin hazır, bazıları üzerinde çalışılabilir.',
+          scene: '🙂📞🗓', joke: 'Takvimler eşleşince iş yürür. Ortak takvim senin yeni en iyi arkadaşın.', heart: '🗓' },
+        { max: 75, name: 'Uygun', text: 'Uzak mesafe için sağlam bir temelin var.',
+          scene: '😎📱🛫', joke: 'Görüntülü görüşme saatleri senin için bir ritüel.', heart: '📱' },
+        { max: 90, name: 'Çok uygun', text: 'İletişim, güven ve sabır bir arada.',
+          scene: '🥰🛫🌍', joke: 'Pasaport hazır, sabır hazır, kalp zaten hazır.', heart: '🌍' },
+        { max: 101, name: 'Uzak mesafe ustası', text: 'Tüm alanlarda güçlü bir hazırlık var.',
+          scene: '🏆🌍💞🛫', joke: 'Zaman farkı seni değil, sen zaman farkını yönetiyorsun.', heart: '🏆' }
+      ]
+    }
+  ];
+
+  /* ================= YARDIMCILAR ================= */
+  var CIRC = 2 * Math.PI * 84;
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function f1(n) { return n.toFixed(1).replace('.', ','); }
+
+  // Ortalama 1 ile 5 arasındadır. Oran = (ortalama - 1) / 4 * 100
+  // Tüm cevaplar 1 ise %0, tüm cevaplar 5 ise %100 olur.
+  function ratio(values) {
+    var sum = values.reduce(function (s, v) { return s + v; }, 0);
+    var avg = sum / values.length;
+    return { sum: sum, avg: avg, pct: ((avg - 1) / 4) * 100 };
+  }
+
+  var DEFAULT_LEGEND = ['1 = Hiç katılmıyorum', '3 = Kararsızım', '5 = Tamamen katılıyorum'];
+  function legendHtml(cfg) {
+    var l = cfg.legend || DEFAULT_LEGEND;
+    return '<div class="scale-legend"><span>' + l[0] + '</span><span>' + l[1] + '</span><span>' + l[2] + '</span></div>';
+  }
+
+  function buildForm(cfg) {
+    var html = '', n = 0, catRanges = [];
+    cfg.questions.forEach(function (c) {
+      var start = n;
+      html += '<div class="cat">' + c.emoji + ' ' + c.cat + '</div>';
+      c.items.forEach(function (text) {
+        n++;
+        html += '<div class="q" data-q="' + n + '"><p class="t"><b>' + n + '.</b>' + text + '</p>' +
+          '<div class="opts" role="radiogroup" aria-label="' + n + '. soru">';
+        for (var v = 1; v <= 5; v++) {
+          html += '<label><input type="radio" name="' + cfg.id + '_q' + n + '" value="' + v + '"><span>' + v + '</span></label>';
+        }
+        html += '</div></div>';
+      });
+      catRanges.push({ from: start + 1, to: n });
+    });
+    return { html: html, total: n, catRanges: catRanges };
+  }
+
+  /* ================= TEST BİLEŞENİ ================= */
+  function createTest(cfg, root) {
+    var total = 0;
+    var catRanges = [];
+    var html = '';
+    var n = 0;
+
+    cfg.questions.forEach(function (c) {
+      var start = n;
+      html += '<div class="cat">' + c.cat + '</div>';
+      c.items.forEach(function (text) {
+        n++;
+        html += '<div class="q" data-q="' + n + '"><p class="t"><b>' + n + '.</b>' + text + '</p>' +
+          '<div class="opts" role="radiogroup" aria-label="' + n + '. soru">';
+        for (var v = 1; v <= 5; v++) {
+          html += '<label><input type="radio" name="' + cfg.id + '_q' + n + '" value="' + v + '"><span>' + v + '</span></label>';
+        }
+        html += '</div></div>';
+      });
+      catRanges.push({ name: c.cat, from: start + 1, to: n });
+    });
+    total = n;
+
+    root.innerHTML =
+      '<div class="card"><p class="intro">' + cfg.intro + '</p>' +
+      legendHtml(cfg) + '</div>' +
+      '<div class="progress"><div class="txt"><span class="ptxt"></span><span class="ppct"></span></div>' +
+      '<div class="meter"><i class="pbar"></i></div></div>' +
+      '<form class="form" autocomplete="off">' + html + '</form>' +
+      '<div class="btns"><button type="button" class="main calc">Oranı hesapla</button>' +
+      '<button type="button" class="ghost reset">Sıfırla</button></div>' +
+      '<div class="err" role="alert"></div>' +
+      '<div class="card result" aria-live="polite">' +
+        '<h2>Sonuç</h2>' +
+        '<div class="gauge"><svg viewBox="0 0 200 200">' +
+          '<circle class="track" cx="100" cy="100" r="84" fill="none" stroke-width="16"></circle>' +
+          '<circle class="bar" cx="100" cy="100" r="84" fill="none" stroke-width="16" stroke-linecap="round"></circle></svg>' +
+          '<div class="center"><div class="num"><span class="score">0</span><small>%</small></div>' +
+          '<div class="lbl">' + cfg.gaugeLabel + '</div></div></div>' +
+        '<p class="level"></p><p class="comment"></p>' +
+        '<div class="visual"><div class="hearts" aria-hidden="true"></div><div class="scene"></div><p class="joke"></p></div>' +
+        '<div class="stats">' +
+          '<div class="stat"><b class="sum">0</b><span>toplam puan</span></div>' +
+          '<div class="stat"><b class="avg">0</b><span>ortalama (5 üzerinden)</span></div>' +
+          '<div class="stat"><b class="top">0</b><span>5 puan verilen ifade</span></div></div>' +
+        '<h2>Kategorilere göre</h2><div class="cats"></div>' +
+        '<p class="note formula"></p>' +
+        '<div class="btns"><button type="button" class="copy">Sonucu kopyala</button></div>' +
+      '</div>';
+
+    var $ = function (sel) { return root.querySelector(sel); };
+    var form = $('.form');
+    var bar = $('.gauge .bar');
+    bar.style.strokeDasharray = CIRC;
+    bar.style.strokeDashoffset = CIRC;
+    var shown = 0, anim = null, lastText = '';
+
+    function getAnswers() {
+      var a = [];
+      for (var i = 1; i <= total; i++) {
+        var el = form.querySelector('input[name="' + cfg.id + '_q' + i + '"]:checked');
+        a.push(el ? parseInt(el.value, 10) : null);
+      }
+      return a;
+    }
+    function qEl(i) { return form.querySelector('[data-q="' + i + '"]'); }
+
+    function updateProgress() {
+      var a = getAnswers();
+      var done = a.filter(function (x) { return x !== null; }).length;
+      $('.ptxt').textContent = done + ' / ' + total + ' cevaplandı';
+      $('.ppct').textContent = '%' + Math.round((done / total) * 100);
+      $('.pbar').style.width = ((done / total) * 100) + '%';
+      a.forEach(function (x, i) { if (x !== null) qEl(i + 1).classList.remove('missing'); });
+      if (done === total) $('.err').textContent = '';
+    }
+    form.addEventListener('change', updateProgress);
+
+    function animateNumber(to) {
+      if (anim) cancelAnimationFrame(anim);
+      var from = shown, start = null, dur = 900;
+      function step(ts) {
+        if (start === null) start = ts;
+        var k = Math.min(1, (ts - start) / dur);
+        var e = 1 - Math.pow(1 - k, 3);
+        shown = from + (to - from) * e;
+        $('.score').textContent = f1(shown);
+        if (k < 1) anim = requestAnimationFrame(step);
+      }
+      anim = requestAnimationFrame(step);
+    }
+
+    function renderVisual(lv, score) {
+      $('.scene').innerHTML = Array.from(lv.scene).map(function (c) { return '<span>' + c + '</span>'; }).join('');
+      $('.joke').textContent = lv.joke;
+      var count = Math.round(score / 5) + 4;
+      var h = '';
+      for (var i = 0; i < count; i++) {
+        h += '<i style="left:' + (Math.random() * 94).toFixed(1) + '%;font-size:' + (14 + Math.random() * 18).toFixed(0) +
+          'px;animation-duration:' + (3 + Math.random() * 3.5).toFixed(1) + 's;animation-delay:' + (-Math.random() * 6).toFixed(1) + 's">' + lv.heart + '</i>';
+      }
+      $('.hearts').innerHTML = h;
+    }
+
+    function calculate() {
+      var a = getAnswers();
+      var missing = [];
+      a.forEach(function (x, i) { if (x === null) missing.push(i + 1); });
+      if (missing.length) {
+        missing.forEach(function (m) { qEl(m).classList.add('missing'); });
+        $('.err').textContent = missing.length + ' ifade cevapsız kaldı. İlk boş olan: ' + missing[0] + '. soru.';
+        qEl(missing[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      $('.err').textContent = '';
+
+      var r = ratio(a);
+      var score = r.pct;
+      var lv = cfg.levels.filter(function (l) { return score < l.max; })[0] || cfg.levels[cfg.levels.length - 1];
+
+      $('.result').classList.add('show');
+      bar.style.stroke = 'hsl(' + (200 + score * 1.6).toFixed(0) + ', 75%, 55%)';
+      bar.style.strokeDashoffset = (CIRC * (1 - score / 100)).toFixed(2);
+      animateNumber(score);
+
+      $('.level').textContent = lv.name;
+      $('.comment').textContent = lv.text;
+      renderVisual(lv, score);
+      $('.sum').textContent = r.sum + ' / ' + (total * 5);
+      $('.avg').textContent = f1(r.avg);
+      $('.top').textContent = a.filter(function (x) { return x === 5; }).length;
+
+      var ch = '', best = null;
+      catRanges.forEach(function (c) {
+        var cr = ratio(a.slice(c.from - 1, c.to));
+        if (!best || cr.pct > best.pct) best = { name: c.name, pct: cr.pct };
+        ch += '<div class="part"><div class="top"><span>' + c.name + '</span><span>ort. ' + f1(cr.avg) + ' / 5 &nbsp; %' + Math.round(cr.pct) + '</span></div>' +
+          '<div class="meter2"><i style="width:' + cr.pct.toFixed(1) + '%"></i></div></div>';
+      });
+      $('.cats').innerHTML = ch;
+      $('.formula').textContent = 'Hesap: ortalama = toplam puan / ' + total + ' soru = ' + f1(r.avg) +
+        '. Oran = (ortalama - 1) / 4 x 100 = %' + f1(score) + '. En yüksek kategori: ' + best.name + '.';
+
+      lastText = cfg.copyPrefix + ': %' + f1(score) + ' (' + lv.name + '). Toplam ' + r.sum + '/' + (total * 5) + ', ortalama ' + f1(r.avg) + '/5.';
+      $('.result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    $('.calc').addEventListener('click', calculate);
+
+    $('.reset').addEventListener('click', function () {
+      form.reset();
+      $('.result').classList.remove('show');
+      $('.err').textContent = '';
+      Array.prototype.forEach.call(form.querySelectorAll('.q'), function (q) { q.classList.remove('missing'); });
+      bar.style.strokeDashoffset = CIRC;
+      shown = 0;
+      updateProgress();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('.copy').addEventListener('click', function () {
+      var btn = $('.copy');
+      function done(ok) {
+        btn.textContent = ok ? 'Kopyalandı' : 'Kopyalanamadı';
+        setTimeout(function () { btn.textContent = 'Sonucu kopyala'; }, 1500);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(lastText).then(function () { done(true); }, function () { done(false); });
+      } else { done(false); }
+    });
+
+    updateProgress();
+  }
+
+  /* ================= NİTEL PROFİL BİLEŞENİ ================= */
+  var DEFAULT_LABELS = {
+    eyebrow: 'Onda en çok sevdiğin yön',
+    topTitle: 'Öne çıkan yönler',
+    likesTitle: 'Özellikle sevdiklerin',
+    strength: ['Pek öne çıkmıyor', 'Fark ediyorsun', 'Beğeniyorsun', 'Çok seviyorsun', 'Tutkuyla seviyorsun'],
+    noTop: 'Henüz belirgin bir yön öne çıkmadı.',
+    lowNote: 'Şimdilik daha az öne çıkan yön: {x}. Zamanla bu tarafını da keşfedebilirsin.'
+  };
+
+  function strengthWord(avg, L) {
+    var w = L.strength;
+    if (avg >= 4.5) return w[4];
+    if (avg >= 3.75) return w[3];
+    if (avg >= 3) return w[2];
+    if (avg >= 2) return w[1];
+    return w[0];
+  }
+
+  function createProfile(cfg, root) {
+    var f = buildForm(cfg);
+    var total = f.total;
+    var L = Object.assign({}, DEFAULT_LABELS, cfg.labels || {});
+
+    root.innerHTML =
+      '<div class="card"><p class="intro">' + cfg.intro + '</p>' + legendHtml(cfg) + '</div>' +
+      '<div class="progress"><div class="txt"><span class="ptxt"></span><span class="ppct"></span></div>' +
+      '<div class="meter"><i class="pbar"></i></div></div>' +
+      '<form class="form" autocomplete="off">' + f.html + '</form>' +
+      '<div class="btns"><button type="button" class="main calc">Profilimi göster</button>' +
+      '<button type="button" class="ghost reset">Sıfırla</button></div>' +
+      '<div class="err" role="alert"></div>' +
+      '<div class="card result" aria-live="polite">' +
+        '<h2>Sonuç</h2>' +
+        '<p class="eyebrow">' + L.eyebrow + '</p>' +
+        '<p class="level big"></p><p class="comment"></p>' +
+        '<div class="visual"><div class="hearts" aria-hidden="true"></div><div class="scene"></div><p class="joke"></p></div>' +
+        '<h2>' + L.topTitle + '</h2><div class="traits"></div>' +
+        '<div class="likes-wrap"><h2>' + L.likesTitle + '</h2><ul class="likes"></ul></div>' +
+        '<p class="note low"></p>' +
+        '<div class="btns"><button type="button" class="copy">Sonucu kopyala</button></div>' +
+      '</div>';
+
+    var $ = function (sel) { return root.querySelector(sel); };
+    var form = $('.form');
+    var lastText = '';
+
+    function getAnswers() {
+      var a = [];
+      for (var i = 1; i <= total; i++) {
+        var el = form.querySelector('input[name="' + cfg.id + '_q' + i + '"]:checked');
+        a.push(el ? parseInt(el.value, 10) : null);
+      }
+      return a;
+    }
+    function qEl(i) { return form.querySelector('[data-q="' + i + '"]'); }
+
+    function updateProgress() {
+      var a = getAnswers();
+      var done = a.filter(function (x) { return x !== null; }).length;
+      $('.ptxt').textContent = done + ' / ' + total + ' cevaplandı';
+      $('.ppct').textContent = '%' + Math.round((done / total) * 100);
+      $('.pbar').style.width = ((done / total) * 100) + '%';
+      a.forEach(function (x, i) { if (x !== null) qEl(i + 1).classList.remove('missing'); });
+      if (done === total) $('.err').textContent = '';
+    }
+    form.addEventListener('change', updateProgress);
+
+    function renderVisual(scene, joke, heart) {
+      $('.scene').innerHTML = Array.from(scene).map(function (c) { return '<span>' + c + '</span>'; }).join('');
+      $('.joke').textContent = joke;
+      var h = '';
+      for (var i = 0; i < 12; i++) {
+        h += '<i style="left:' + (Math.random() * 94).toFixed(1) + '%;font-size:' + (14 + Math.random() * 18).toFixed(0) +
+          'px;animation-duration:' + (3 + Math.random() * 3.5).toFixed(1) + 's;animation-delay:' + (-Math.random() * 6).toFixed(1) + 's">' + heart + '</i>';
+      }
+      $('.hearts').innerHTML = h;
+    }
+
+    function calculate() {
+      var a = getAnswers();
+      var missing = [];
+      a.forEach(function (x, i) { if (x === null) missing.push(i + 1); });
+      if (missing.length) {
+        missing.forEach(function (m) { qEl(m).classList.add('missing'); });
+        $('.err').textContent = missing.length + ' ifade cevapsız kaldı. İlk boş olan: ' + missing[0] + '. soru.';
+        qEl(missing[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      $('.err').textContent = '';
+
+      var groups = cfg.questions.map(function (c, i) {
+        var r = f.catRanges[i];
+        var vals = a.slice(r.from - 1, r.to);
+        return { c: c, idx: i, vals: vals, avg: ratio(vals).avg, from: r.from };
+      });
+      var overall = ratio(a).avg;
+      var ranked = groups.slice().sort(function (x, y) { return (y.avg - x.avg) || (x.idx - y.idx); });
+      var spread = ranked[0].avg - ranked[ranked.length - 1].avg;
+
+      var view;
+      if (ranked[0].avg < 3) view = cfg.low;
+      else if (spread <= 0.4 && overall >= 3) view = cfg.balanced;
+      else view = { title: ranked[0].c.title, scene: ranked[0].c.scene, heart: ranked[0].c.heart, desc: ranked[0].c.desc, joke: ranked[0].c.joke };
+
+      $('.result').classList.add('show');
+      $('.level').textContent = view.title;
+      var desc = view.desc;
+      if (view === cfg.low || view === cfg.balanced) { /* tek paragraf yeterli */ }
+      else if (ranked[1].avg >= 3) {
+        desc += ' İkinci sırada ' + ranked[1].c.cat.toLocaleLowerCase('tr') + ' geliyor.';
+      }
+      $('.comment').textContent = desc;
+      renderVisual(view.scene, view.joke, view.heart);
+
+      var top = ranked.filter(function (g) { return g.avg >= 3; }).slice(0, 3);
+      var th = '';
+      top.forEach(function (g) {
+        th += '<div class="trait"><div class="e">' + g.c.emoji + '</div><div><b>' + g.c.cat + '</b><span>' + strengthWord(g.avg, L) + '</span></div></div>';
+      });
+      if (!top.length) th = '<p class="note">' + L.noTop + '</p>';
+      $('.traits').innerHTML = th;
+
+      var likes = [];
+      ranked.forEach(function (g) {
+        g.vals.forEach(function (v, k) { if (v === 5) likes.push(g.c.items[k]); });
+      });
+      if (!likes.length) {
+        ranked.forEach(function (g) {
+          g.vals.forEach(function (v, k) { if (v === 4) likes.push(g.c.items[k]); });
+        });
+      }
+      likes = likes.slice(0, 6);
+      $('.likes-wrap').style.display = likes.length ? '' : 'none';
+      $('.likes').innerHTML = likes.map(function (t) { return '<li>' + t + '</li>'; }).join('');
+
+      var lowest = ranked[ranked.length - 1];
+      var note = $('.note.low');
+      if (view !== cfg.low && lowest.avg < 3) {
+        note.textContent = L.lowNote.replace('{x}', lowest.c.cat.toLocaleLowerCase('tr'));
+        note.style.display = '';
+      } else {
+        note.style.display = 'none';
+      }
+
+      var names = top.map(function (g) { return g.c.cat.toLocaleLowerCase('tr'); });
+      lastText = cfg.copyPrefix + ': ' + view.title + (names.length ? ' (' + names.join(', ') + ')' : '') + '. ' + view.joke;
+      $('.result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    $('.calc').addEventListener('click', calculate);
+
+    $('.reset').addEventListener('click', function () {
+      form.reset();
+      $('.result').classList.remove('show');
+      $('.err').textContent = '';
+      Array.prototype.forEach.call(form.querySelectorAll('.q'), function (q) { q.classList.remove('missing'); });
+      updateProgress();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('.copy').addEventListener('click', function () {
+      var btn = $('.copy');
+      function done(ok) {
+        btn.textContent = ok ? 'Kopyalandı' : 'Kopyalanamadı';
+        setTimeout(function () { btn.textContent = 'Sonucu kopyala'; }, 1500);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(lastText).then(function () { done(true); }, function () { done(false); });
+      } else { done(false); }
+    });
+
+    updateProgress();
+  }
+
+  /* ================= SEKMELER ================= */
+  var tabsEl = document.getElementById('tabs');
+  var panelsEl = document.getElementById('panels');
+  var tabBtns = {}, panelEls = {};
+
+  TESTS.forEach(function (cfg) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tab';
+    b.id = 'tab-' + cfg.id;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-controls', 'panel-' + cfg.id);
+    b.textContent = cfg.tab;
+    b.addEventListener('click', function () { select(cfg.id, true); });
+    tabsEl.appendChild(b);
+    tabBtns[cfg.id] = b;
+
+    var p = document.createElement('section');
+    p.className = 'panel';
+    p.id = 'panel-' + cfg.id;
+    p.setAttribute('role', 'tabpanel');
+    p.setAttribute('aria-labelledby', 'tab-' + cfg.id);
+    panelsEl.appendChild(p);
+    panelEls[cfg.id] = p;
+    if (cfg.mode === 'profile') createProfile(cfg, p); else createTest(cfg, p);
+  });
+
+  function select(id, updateHash) {
+    TESTS.forEach(function (cfg) {
+      var on = cfg.id === id;
+      tabBtns[cfg.id].setAttribute('aria-selected', on ? 'true' : 'false');
+      panelEls[cfg.id].hidden = !on;
+    });
+    if (updateHash) {
+      try { history.replaceState(null, '', '#' + id); } catch (e) { /* önemsiz */ }
+    }
+    window.scrollTo({ top: 0 });
+  }
+
+  var initial = (location.hash || '').replace('#', '');
+  select(panelEls[initial] ? initial : TESTS[0].id, false);
+})();
+</script>
+</body>
+</html>
