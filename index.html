@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Özlem Motoru</title>
+<style>
+  :root {
+    --bg: #fdf7f8;
+    --card: #ffffff;
+    --ink: #2a1f24;
+    --muted: #7b6b72;
+    --line: #eadfe3;
+    --accent: #d6336c;
+    --accent-soft: #fde8ef;
+    --track: #f1e6ea;
+    --warn: #e8590c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17111a;
+      --card: #211823;
+      --ink: #f6ecf1;
+      --muted: #b09ba6;
+      --line: #35283a;
+      --accent: #ff6b9a;
+      --accent-soft: #3a1f2e;
+      --track: #2e2230;
+      --warn: #ffa94d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 18px 70px; }
+  header h1 { margin: 0 0 4px; font-size: 28px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 18px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 16px; }
+
+
+  .scale-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 12px; gap: 8px; }
+  .progress { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 12px 0 10px; margin-top: 6px; }
+  .progress .meter { height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; }
+  .progress .meter i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .3s ease; }
+  .progress .txt { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+  .cat { margin: 22px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-weight: 700; }
+  .q {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 10px; transition: border-color .2s, background .2s;
+  }
+  .q.missing { border-color: var(--warn); }
+  .q .t { font-size: 15px; margin: 0 0 10px; }
+  .q .t b { color: var(--muted); font-weight: 600; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .opts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .opts label { position: relative; cursor: pointer; }
+  .opts input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .opts span {
+    display: block; text-align: center; padding: 9px 0; border-radius: 10px;
+    border: 1px solid var(--line); font-weight: 700; font-size: 15px; color: var(--muted);
+    transition: all .15s; user-select: none;
+  }
+  .opts label:hover span { border-color: var(--accent); color: var(--ink); }
+  .opts input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .opts input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  button {
+    font: inherit; cursor: pointer; border: 0; border-radius: 12px;
+    padding: 12px 18px; font-weight: 700; background: var(--accent); color: #fff;
+  }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btns { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .err { color: var(--warn); font-size: 14px; margin-top: 10px; min-height: 20px; }
+
+  .visual { position: relative; overflow: hidden; background: var(--accent-soft); border-radius: 16px; padding: 22px 14px 18px; margin: 0 0 18px; text-align: center; }
+  .scene { position: relative; z-index: 1; display: flex; justify-content: center; gap: 10px; font-size: 58px; line-height: 1.1; }
+  .scene span { display: inline-block; animation: bob 1.4s ease-in-out infinite; }
+  .scene span:nth-child(2) { animation-delay: .2s; }
+  .scene span:nth-child(3) { animation-delay: .4s; }
+  .scene span:nth-child(4) { animation-delay: .6s; }
+  @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-10px) rotate(4deg); } }
+  .joke { position: relative; z-index: 1; margin: 14px 6px 0; font-size: 16px; font-weight: 600; }
+  .hearts { position: absolute; inset: 0; pointer-events: none; }
+  .hearts i { position: absolute; bottom: -30px; font-style: normal; opacity: 0; animation: rise linear infinite; }
+  @keyframes rise { 0% { transform: translateY(0) scale(.8); opacity: 0; } 15% { opacity: .85; } 100% { transform: translateY(-260px) scale(1.2); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .scene span, .hearts i { animation: none; } .hearts { display: none; } }
+  #result { display: none; }
+  #result.show { display: block; }
+  .gauge { position: relative; width: 230px; height: 230px; margin: 4px auto 10px; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge .track { stroke: var(--track); }
+  .gauge .bar { transition: stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1), stroke .6s; }
+  .gauge .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .gauge .num { font-size: 52px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .gauge .num small { font-size: 22px; font-weight: 700; }
+  .gauge .lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .level { text-align: center; font-size: 22px; font-weight: 700; margin: 0; }
+  .comment { text-align: center; color: var(--muted); margin: 6px 0 16px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+  .stat { background: var(--accent-soft); border-radius: 12px; padding: 10px 8px; text-align: center; }
+  .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--muted); }
+  .part { margin-bottom: 11px; }
+  .part .top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .part .top span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meter2 { height: 9px; border-radius: 99px; background: var(--track); overflow: hidden; }
+  .meter2 i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .7s ease; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Özlem Motoru</h1>
+    <p>Her ifadeye 1 ile 5 arasında puan ver. Sonunda cevapların ortalamasından özlem oranın çıkar.</p>
+  </header>
+
+  <div class="card">
+    <div class="scale-legend">
+      <span>1 = Hiç katılmıyorum</span>
+      <span>3 = Kararsızım</span>
+      <span>5 = Tamamen katılıyorum</span>
+    </div>
+  </div>
+
+  <div class="progress">
+    <div class="txt"><span id="ptxt">0 / 0 cevaplandı</span><span id="ppct">%0</span></div>
+    <div class="meter"><i id="pbar"></i></div>
+  </div>
+
+  <form id="form" autocomplete="off"></form>
+
+  <div class="btns">
+    <button type="button" id="calc">Özlem oranını hesapla</button>
+    <button type="button" class="ghost" id="reset">Sıfırla</button>
+  </div>
+  <div class="err" id="err" role="alert"></div>
+
+  <div class="card" id="result" aria-live="polite">
+    <h2 id="rtitle">Sonuç</h2>
+    <div class="gauge">
+      <svg viewBox="0 0 200 200">
+        <circle class="track" cx="100" cy="100" r="84" fill="none" stroke-width="16"></circle>
+        <circle class="bar" id="bar" cx="100" cy="100" r="84" fill="none" stroke-width="16" stroke-linecap="round"></circle>
+      </svg>
+      <div class="center">
+        <div class="num"><span id="score">0</span><small>%</small></div>
+        <div class="lbl">özlem oranı</div>
+      </div>
+    </div>
+    <p class="level" id="level"></p>
+    <p class="comment" id="comment"></p>
+    <div class="visual" id="visual" aria-hidden="false">
+      <div class="hearts" id="hearts" aria-hidden="true"></div>
+      <div class="scene" id="scene"></div>
+      <p class="joke" id="joke"></p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="sum">0</b><span>toplam puan</span></div>
+      <div class="stat"><b id="avg">0</b><span>ortalama (5 üzerinden)</span></div>
+      <div class="stat"><b id="top">0</b><span>5 puan verilen ifade</span></div>
+    </div>
+
+    <h2>Kategorilere göre</h2>
+    <div id="cats"></div>
+    <p class="note" id="formula"></p>
+    <div class="btns">
+      <button type="button" id="copy">Sonucu kopyala</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var QUESTIONS = [
+    { cat: 'Düşünceler', items: [
+      'Gün içinde sık sık sevgilimi düşünüyorum.',
+      'Birlikte yaşadığımız anları gözümde canlandırıyorum.',
+      'Güzel bir şey olduğunda ilk onunla paylaşmak istiyorum.',
+      'Rüyalarımda ya da hayallerimde sık sık o oluyor.',
+      'Onu hatırlatan bir kişi ya da şey görünce duraksıyorum.',
+      'O an ne yapıyor olabileceğini merak ediyorum.',
+      'Ona anlatmak istediğim şeyleri aklımda biriktiriyorum.'
+    ]},
+    { cat: 'Duygular', items: [
+      'Yanımda olmadığı için içimde bir boşluk hissediyorum.',
+      'Sesini duymak için can atıyorum.',
+      'Ona sarılmayı çok istiyorum.',
+      'Ona dair bir şarkı, koku ya da yer beni duygulandırıyor.',
+      'Yanında olmadığımda kendimi eksik hissediyorum.',
+      'Onu düşündüğümde gözlerim dolabiliyor.',
+      'Gülüşünü görmeyi çok özlüyorum.',
+      'Yokluğu zaman zaman içimi sıkıyor.'
+    ]},
+    { cat: 'Günlük hayat', items: [
+      'Onsuz geçen günler bana çok uzun geliyor.',
+      'Dikkatimi toplamakta zorlanıyorum.',
+      'Telefonumu sık sık ondan mesaj var mı diye kontrol ediyorum.',
+      'Eski fotoğraflarımıza ya da mesajlarımıza bakıyorum.',
+      'Onun mesajını beklerken başka işlere odaklanmakta zorlanıyorum.',
+      'Yemek yerken ya da bir şey izlerken "keşke yanımda olsaydı" diyorum.',
+      'Uyumadan önce onu daha çok düşünüyorum.',
+      'Gündelik işler bana eskisi kadar keyif vermiyor.'
+    ]},
+    { cat: 'Fiziksel yakınlık', items: [
+      'Elini tutmayı özlüyorum.',
+      'Yanında uyumayı ya da uyanmayı özlüyorum.',
+      'Kokusunu özlüyorum.',
+      'Yanında olmanın verdiği güven hissini özlüyorum.',
+      'Dokunuşuna ihtiyaç duyuyorum.',
+      'Yanında rahatça sessiz kalabildiğimiz anları özlüyorum.'
+    ]},
+    { cat: 'Ortak alışkanlıklar', items: [
+      'Birlikte yaptığımız sıradan şeyleri bile özlüyorum.',
+      'Birlikte gittiğimiz yerleri yeniden ziyaret etmek istiyorum.',
+      'Ortak espri ve şakalarımızı başka kimseyle yapamıyorum.',
+      'Birlikte yemek yapmayı ya da yemeyi özlüyorum.',
+      'Onunla yaptığımız uzun ve derin sohbetleri özlüyorum.',
+      'Birlikte izlediğimiz dizi, film ya da dinlediğimiz şarkılar bana onu hatırlatıyor.'
+    ]},
+    { cat: 'Kavuşma isteği', items: [
+      'Bir sonraki buluşmamızı sabırsızlıkla bekliyorum.',
+      'Onu görmek için plan yapıyor ya da bilet bakıyorum.',
+      'Buluşma gününe kadar günleri sayıyorum.',
+      'Onu görmek için programımdan fedakarlık etmeye hazırım.',
+      'Kavuştuğumuzda yapacaklarımızı önceden hayal ediyorum.',
+      'Hemen yanına gitmek istiyorum.'
+    ]}
+  ];
+
+  var LEVELS = [
+    { max: 15, name: 'Hafif sızı',            text: 'Özlem var ama gündelik hayatı etkilemiyor.',
+      scene: '😌☕📖', joke: 'Özlem mi? Çayım demli, kitabım yanımda. Gayet iyiyim.', heart: '💗' },
+    { max: 35, name: 'Tatlı bir eksiklik',    text: 'Arada telefona bakıp gülümsetecek kadar.',
+      scene: '🙂📱💭', joke: 'Arada telefona bakıp "Ne yapıyor acaba?" diyorum. Normal, değil mi?', heart: '💗' },
+    { max: 55, name: 'Belirgin özlem',        text: 'Ortak mekanlar ve şarkılar artık dokunuyor.',
+      scene: '🥹🎵📸', joke: 'Şarkı çalıyor, galeri açık, gözler dolu. Klasik özlem manzarası.', heart: '💕' },
+    { max: 75, name: 'Yoğun özlem',           text: 'Mesaj beklemek ve dalıp gitmek başlamış.',
+      scene: '😩📱👀', joke: 'Mesaj gelmedi diye telefonu 47. kez kontrol ettim. Hâlâ sessiz.', heart: '💔' },
+    { max: 90, name: 'Çok yoğun özlem',       text: 'Bilet fiyatlarına bakma aşamasına gelinmiş.',
+      scene: '🤯✈️🎫', joke: 'Bilet sitesinde sepet dolu. Sadece "öde" tuşuna basmak kalmış.', heart: '❤️‍🔥' },
+    { max: 101, name: 'Acil kavuşma gerekli', text: 'Bu oran uzun süre taşınmaz, buluşma planı şart.',
+      scene: '🚨🏃💨🫂', joke: 'Valiz hazır, ayakkabılar bağlı. Kavuşma alarmı verildi!', heart: '❤️‍🔥' }
+  ];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var form = $('form');
+  var total = 0;
+  var catRanges = [];
+
+  // Soruları oluştur
+  (function build() {
+    var html = '';
+    var n = 0;
+    QUESTIONS.forEach(function (c) {
+      var start = n;
+      html += '<div class="cat">' + c.cat + '</div>';
+      c.items.forEach(function (text) {
+        n++;
+        html += '<div class="q" id="q' + n + '"><p class="t"><b>' + n + '.</b>' + text + '</p><div class="opts" role="radiogroup" aria-label="' + n + '. soru">';
+        for (var v = 1; v <= 5; v++) {
+          html += '<label><input type="radio" name="q' + n + '" value="' + v + '"><span>' + v + '</span></label>';
+        }
+        html += '</div></div>';
+      });
+      catRanges.push({ name: c.cat, from: start + 1, to: n });
+    });
+    total = n;
+    form.innerHTML = html;
+  })();
+
+  function getAnswers() {
+    var a = [];
+    for (var i = 1; i <= total; i++) {
+      var el = form.querySelector('input[name="q' + i + '"]:checked');
+      a.push(el ? parseInt(el.value, 10) : null);
+    }
+    return a;
+  }
+
+  function updateProgress() {
+    var a = getAnswers();
+    var done = a.filter(function (x) { return x !== null; }).length;
+    $('ptxt').textContent = done + ' / ' + total + ' cevaplandı';
+    $('ppct').textContent = '%' + Math.round((done / total) * 100);
+    $('pbar').style.width = ((done / total) * 100) + '%';
+    a.forEach(function (x, i) {
+      if (x !== null) $('q' + (i + 1)).classList.remove('missing');
+    });
+    if (done === total) $('err').textContent = '';
+  }
+
+  form.addEventListener('change', updateProgress);
+
+  /* ---------- HESAPLAMA MOTORU ---------- */
+  // Ortalama 1 ile 5 arasındadır. Oran = (ortalama - 1) / 4 * 100
+  // Böylece tüm cevaplar 1 ise %0, tüm cevaplar 5 ise %100 olur.
+  function ratio(values) {
+    var sum = values.reduce(function (s, v) { return s + v; }, 0);
+    var avg = sum / values.length;
+    return { sum: sum, avg: avg, pct: ((avg - 1) / 4) * 100, count: values.length };
+  }
+
+  var CIRC = 2 * Math.PI * 84;
+  var bar = $('bar');
+  bar.style.strokeDasharray = CIRC;
+  bar.style.strokeDashoffset = CIRC;
+  var shown = 0, anim = null;
+
+  function animateNumber(to) {
+    if (anim) cancelAnimationFrame(anim);
+    var from = shown, start = null, dur = 900;
+    function step(ts) {
+      if (start === null) start = ts;
+      var k = Math.min(1, (ts - start) / dur);
+      var e = 1 - Math.pow(1 - k, 3);
+      shown = from + (to - from) * e;
+      $('score').textContent = shown.toFixed(1).replace('.', ',');
+      if (k < 1) anim = requestAnimationFrame(step);
+    }
+    anim = requestAnimationFrame(step);
+  }
+
+  function renderVisual(lv, score) {
+    var chars = Array.from(lv.scene);
+    $('scene').innerHTML = chars.map(function (c) { return '<span>' + c + '</span>'; }).join('');
+    $('joke').textContent = lv.joke;
+    var count = Math.round(score / 5) + 4;
+    var h = '';
+    for (var i = 0; i < count; i++) {
+      var left = Math.random() * 94;
+      var size = 14 + Math.random() * 18;
+      var dur = 3 + Math.random() * 3.5;
+      var delay = -Math.random() * 6;
+      h += '<i style="left:' + left.toFixed(1) + '%;font-size:' + size.toFixed(0) + 'px;animation-duration:' + dur.toFixed(1) + 's;animation-delay:' + delay.toFixed(1) + 's">' + lv.heart + '</i>';
+    }
+    $('hearts').innerHTML = h;
+  }
+
+  function f1(n) { return n.toFixed(1).replace('.', ','); }
+  var lastText = '';
+
+  function calculate() {
+    var a = getAnswers();
+    var missingIdx = [];
+    a.forEach(function (x, i) { if (x === null) missingIdx.push(i + 1); });
+
+    if (missingIdx.length) {
+      missingIdx.forEach(function (n) { $('q' + n).classList.add('missing'); });
+      $('err').textContent = missingIdx.length + ' ifade cevapsız kaldı. İlk boş olan: ' + missingIdx[0] + '. soru.';
+      $('q' + missingIdx[0]).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    $('err').textContent = '';
+
+    var r = ratio(a);
+    var score = r.pct;
+
+    var lv = LEVELS.filter(function (l) { return score < l.max; })[0] || LEVELS[LEVELS.length - 1];
+
+
+    $('result').classList.add('show');
+    bar.style.stroke = 'hsl(' + (200 + score * 1.6).toFixed(0) + ', 75%, 55%)';
+    bar.style.strokeDashoffset = (CIRC * (1 - score / 100)).toFixed(2);
+    animateNumber(score);
+
+    $('level').textContent = lv.name;
+    $('comment').textContent = lv.text;
+    renderVisual(lv, score);
+    $('sum').textContent = r.sum + ' / ' + (total * 5);
+    $('avg').textContent = f1(r.avg);
+    $('top').textContent = a.filter(function (x) { return x === 5; }).length;
+
+    var html = '';
+    var best = null;
+    catRanges.forEach(function (c) {
+      var vals = a.slice(c.from - 1, c.to);
+      var cr = ratio(vals);
+      if (!best || cr.pct > best.pct) best = { name: c.name, pct: cr.pct };
+      html += '<div class="part"><div class="top"><span>' + c.name + '</span><span>ort. ' + f1(cr.avg) + ' / 5 &nbsp; %' + Math.round(cr.pct) + '</span></div>' +
+        '<div class="meter2"><i style="width:' + cr.pct.toFixed(1) + '%"></i></div></div>';
+    });
+    $('cats').innerHTML = html;
+
+    $('formula').textContent = 'Hesap: ortalama = toplam puan / ' + total + ' soru = ' + f1(r.avg) +
+      '. Özlem oranı = (ortalama - 1) / 4 x 100 = %' + f1(score) + '. En yüksek kategori: ' + best.name + '.';
+
+    lastText = 'Özlem oranım: %' + f1(score) +
+      ' (' + lv.name + '). Toplam ' + r.sum + '/' + (total * 5) + ', ortalama ' + f1(r.avg) + '/5.';
+
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('calc').addEventListener('click', calculate);
+
+  $('reset').addEventListener('click', function () {
+    form.reset();
+    $('result').classList.remove('show');
+    $('err').textContent = '';
+    Array.prototype.forEach.call(document.querySelectorAll('.q'), function (q) { q.classList.remove('missing'); });
+    bar.style.strokeDashoffset = CIRC;
+    shown = 0;
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  $('copy').addEventListener('click', function () {
+    var btn = $('copy');
+    function done(ok) {
+      btn.textContent = ok ? 'Kopyalandı' : 'Kopyalanamadı';
+      setTimeout(function () { btn.textContent = 'Sonucu kopyala'; }, 1500);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lastText).then(function () { done(true); }, function () { done(false); });
+    } else { done(false); }
+  });
+
+  updateProgress();
+})();
+</script>
+</body>
+</html>
